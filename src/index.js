@@ -12,12 +12,33 @@ if (profileIndex !== -1 && process.argv[profileIndex + 1]) {
   process.env.BROWSER_PROFILE = process.argv[profileIndex + 1];
 }
 
+// Positional short form: (profile, document) when two non-flag args and first isn't .docx
+function getPositionalArgs() {
+  const skip = new Set();
+  if (profileIndex !== -1 && process.argv[profileIndex + 1]) {
+    skip.add(profileIndex);
+    skip.add(profileIndex + 1);
+  }
+  const positionals = process.argv
+    .map((a, i) => (skip.has(i) ? null : a))
+    .filter((a) => a && !a.startsWith('--') && a !== '-p' && a !== 'node' && !a.endsWith('index.js'));
+  return positionals;
+}
+
+const positionals = getPositionalArgs();
+if (positionals.length >= 2 && !positionals[0].toLowerCase().endsWith('.docx') && positionals[1].toLowerCase().endsWith('.docx')) {
+  process.env.BROWSER_PROFILE = positionals[0];
+}
+
 const ONCE_FLAG = process.argv.includes('--once');
 const WATCH_FLAG = process.argv.includes('--watch');
 const LIST_PROFILES_FLAG = process.argv.includes('--list-profiles');
 const RESET_FLAG = process.argv.includes('--reset') || process.argv.includes('--reset-profile');
 
 function getDocxArg() {
+  if (positionals.length >= 2 && positionals[1].toLowerCase().endsWith('.docx')) {
+    return positionals[1];
+  }
   const args = process.argv.filter((a) => !a.startsWith('--') && a !== '-p' && a.endsWith('.docx'));
   return args[0];
 }

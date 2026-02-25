@@ -6,6 +6,10 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
+    "process": "node src/index.js",
+    "once": "node src/index.js --once",
+    "profiles": "node src/index.js --list-profiles",
+    "reset": "node src/index.js --reset",
     "postinstall": "npx playwright install chromium"
   },
   "dependencies": {

@@ -1,0 +1,6 @@
+node_modules/
+.env
+data/browser-profile/
+data/results/*.docx
+*.log
+.DS_Store

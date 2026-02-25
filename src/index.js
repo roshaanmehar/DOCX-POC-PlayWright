@@ -3,20 +3,30 @@
 import 'dotenv/config';
 import path from 'path';
 import fs from 'fs';
-import { launch, checkLogin, waitForManualLogin, shutdown } from './browser.js';
+import { launch, checkLogin, waitForManualLogin, shutdown, getProfilePath, getProfilesBase } from './browser.js';
 import { processFile } from './worker.js';
+
+// Parse profile from CLI before launch (env is read by browser.js)
+const profileIndex = process.argv.findIndex((a) => a === '--profile' || a === '-p');
+if (profileIndex !== -1 && process.argv[profileIndex + 1]) {
+  process.env.BROWSER_PROFILE = process.argv[profileIndex + 1];
+}
 
 const ONCE_FLAG = process.argv.includes('--once');
 const WATCH_FLAG = process.argv.includes('--watch');
+const LIST_PROFILES_FLAG = process.argv.includes('--list-profiles');
+const RESET_FLAG = process.argv.includes('--reset') || process.argv.includes('--reset-profile');
 
 function getDocxArg() {
-  const args = process.argv.filter((a) => !a.startsWith('--') && a.endsWith('.docx'));
+  const args = process.argv.filter((a) => !a.startsWith('--') && a !== '-p' && a.endsWith('.docx'));
   return args[0];
 }
 
 function validateFile(filePath) {
   if (!filePath) {
-    console.error('Usage: node src/index.js [--once] <path-to-template.docx>');
+    console.error('Usage: node src/index.js [--once] [--profile <name>] <path-to-template.docx>');
+    console.error('       node src/index.js --list-profiles');
+    console.error('       node src/index.js [--profile <name>] --reset');
     console.error('   Or: node src/index.js --watch <directory>');
     process.exit(1);
   }
@@ -43,6 +53,36 @@ async function runOne(context, page, docxPath) {
 }
 
 async function main() {
+  if (LIST_PROFILES_FLAG) {
+    const base = getProfilesBase();
+    if (!fs.existsSync(base)) {
+      console.log('No profiles yet. Use --profile <name> to create one.');
+      process.exit(0);
+    }
+    const names = fs.readdirSync(base, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+      .sort();
+    if (names.length === 0) {
+      console.log('No profiles yet. Use --profile <name> to create one.');
+    } else {
+      console.log('Profiles:', names.join(', '));
+    }
+    process.exit(0);
+  }
+
+  if (RESET_FLAG) {
+    const profilePath = getProfilePath();
+    const profileName = process.env.BROWSER_PROFILE || 'default';
+    if (fs.existsSync(profilePath)) {
+      fs.rmSync(profilePath, { recursive: true, force: true });
+      console.log(`Profile '${profileName}' reset. Next run will require login.`);
+    } else {
+      console.log(`Profile '${profileName}' not found at ${profilePath}. Nothing to reset.`);
+    }
+    process.exit(0);
+  }
+
   if (WATCH_FLAG) {
     const dir = process.argv[process.argv.indexOf('--watch') + 1];
     if (!dir || !fs.existsSync(path.resolve(dir))) {

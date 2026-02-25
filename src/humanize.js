@@ -62,10 +62,13 @@ export async function humanClick(page, selector, options = {}) {
     const stepX = lerp(t, startX, x);
     const stepY = lerp(t, startY, y);
     await page.mouse.move(stepX, stepY);
-    await page.evaluate((px, py) => {
-      window.__lastMouseX = px;
-      window.__lastMouseY = py;
-    }, stepX, stepY);
+    await page.evaluate(
+      ({ x, y }) => {
+        window.__lastMouseX = x;
+        window.__lastMouseY = y;
+      },
+      { x: stepX, y: stepY }
+    );
     await randomDelay(20, 80);
   }
 

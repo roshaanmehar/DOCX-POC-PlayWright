@@ -50,36 +50,69 @@ export async function processFile(page, docxFilePath) {
 
     await page.waitForSelector(chatInputSelector(), { state: 'visible', timeout: 15000 }).catch(() => null);
 
-    // Step 2: Enable extended thinking (optional; skip if selectors not set)
+    // Step 2: Try Opus 4.6 (fallback to current model if unavailable, e.g. unpaid account)
+    if (selectors.modelSelector !== PLACEHOLDER) {
+      await delays.betweenActions();
+      try {
+        await humanClick(page, selectors.modelSelector);
+        await randomDelay(500, 1200);
+        if (selectors.modelOptionOpus46 !== PLACEHOLDER) {
+          const opusOption = page.locator(selectors.modelOptionOpus46).first();
+          const visible = await opusOption.isVisible().catch(() => false);
+          const disabled = await opusOption.getAttribute('aria-disabled').then((a) => a === 'true').catch(() => false);
+          if (visible && !disabled) {
+            await humanClick(page, selectors.modelOptionOpus46);
+          } else {
+            console.log('Opus 4.6 not available (e.g. upgrade required). Using current model.');
+          }
+        }
+        await randomDelay(300, 700);
+        await page.keyboard.press('Escape');
+      } catch (e) {
+        console.log('Model selection skipped:', e.message);
+      }
+    }
+
+    // Step 3: Try extended thinking (fallback: skip if disabled or not available)
     if (
       selectors.toolsMenuButton !== PLACEHOLDER &&
       selectors.thinkingToggle !== PLACEHOLDER
     ) {
       await delays.betweenActions();
-      await humanClick(page, selectors.toolsMenuButton);
-      await randomDelay(500, 1000);
-      const toggle = await page.locator(selectors.thinkingToggle).first();
-      const checked = await toggle.getAttribute('aria-checked').then((a) => a === 'true').catch(() => false);
-      if (!checked) {
-        await humanClick(page, selectors.thinkingToggle);
+      try {
+        await humanClick(page, selectors.toolsMenuButton);
+        await randomDelay(500, 1000);
+        const toggle = page.locator(selectors.thinkingToggle).first();
+        const visible = await toggle.isVisible().catch(() => false);
+        const disabled = await toggle.getAttribute('aria-disabled').then((a) => a === 'true').catch(() => false);
+        if (visible && !disabled) {
+          const checked = await toggle.getAttribute('aria-checked').then((a) => a === 'true').catch(() => false);
+          if (!checked) {
+            await humanClick(page, selectors.thinkingToggle);
+          }
+        } else {
+          console.log('Extended thinking not available. Continuing without it.');
+        }
+        await randomDelay(300, 800);
+        await page.keyboard.press('Escape');
+      } catch (e) {
+        console.log('Extended thinking skipped:', e.message);
       }
-      await randomDelay(300, 800);
-      await page.keyboard.press('Escape');
     }
 
-    // Step 3: Upload file
+    // Step 4: Upload file
     await delays.betweenActions();
     const fileInput = await page.locator(selectors.fileInput).first();
     await fileInput.setInputFiles(resolvedPath);
     await delays.afterUpload();
 
-    // Step 4: Type / paste prompt
+    // Step 5: Type / paste prompt
     await delays.betweenActions();
     const inputSel = chatInputSelector();
     await humanPaste(page, inputSel, prompt);
     await delays.beforeSend();
 
-    // Step 5: Send message (click send button or press Enter)
+    // Step 6: Send message (click send button or press Enter)
     if (selectors.sendButton !== PLACEHOLDER) {
       await humanClick(page, selectors.sendButton);
     } else {
@@ -87,7 +120,7 @@ export async function processFile(page, docxFilePath) {
     }
     await randomDelay(500, 1000);
 
-    // Step 6: Wait for response to complete
+    // Step 7: Wait for response to complete
     const responseStart = Date.now();
     if (selectors.streamingIndicator !== PLACEHOLDER) {
       await page.waitForSelector(selectors.streamingIndicator, { timeout: 120000 }).catch(() => null);
@@ -109,7 +142,7 @@ export async function processFile(page, docxFilePath) {
       }
     }
 
-    // Step 7: Download artifact
+    // Step 8: Download artifact
     await delays.afterResponse();
     ensureResultsDir();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);

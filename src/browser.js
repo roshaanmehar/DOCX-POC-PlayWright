@@ -1,5 +1,7 @@
 'use strict';
 
+import path from 'path';
+import fs from 'fs';
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import selectors, { PLACEHOLDER } from './selectors.js';
@@ -14,8 +16,37 @@ try {
 }
 
 const BROWSER_HEADLESS = process.env.BROWSER_HEADLESS !== 'false';
-const BROWSER_PROFILE_DIR = process.env.BROWSER_PROFILE_DIR || './data/browser-profile';
+const BROWSER_PROFILES_BASE = process.env.BROWSER_PROFILES_DIR || path.resolve(process.cwd(), 'data', 'browser-profiles');
+const BROWSER_PROFILE_DIR_LEGACY = process.env.BROWSER_PROFILE_DIR;
 const CLAUDE_URL = process.env.CLAUDE_URL || 'https://claude.ai';
+
+/**
+ * Get profile directory path without creating it (e.g. for --reset).
+ * @returns {string} Absolute path to profile directory
+ */
+export function getProfilePath() {
+  const profileName = process.env.BROWSER_PROFILE || '';
+  if (BROWSER_PROFILE_DIR_LEGACY && !profileName) {
+    return path.resolve(process.cwd(), BROWSER_PROFILE_DIR_LEGACY);
+  }
+  const name = profileName || 'default';
+  return path.resolve(BROWSER_PROFILES_BASE, name);
+}
+
+/**
+ * Resolve the userDataDir and ensure it exists (for launch).
+ * @returns {string} Absolute path to profile directory
+ */
+export function resolveProfileDir() {
+  const userDataDir = getProfilePath();
+  fs.mkdirSync(userDataDir, { recursive: true });
+  return userDataDir;
+}
+
+/** Base directory for named profiles (for --list-profiles). */
+export function getProfilesBase() {
+  return path.resolve(BROWSER_PROFILES_BASE);
+}
 const LOGIN_POLL_MS = 2500;
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000;
 const PAGE_STABILIZE_MS = 3000;
@@ -68,11 +99,13 @@ async function isLoggedInHeuristic(page) {
 }
 
 /**
- * Launch persistent Chromium context. Profile is saved to BROWSER_PROFILE_DIR.
+ * Launch persistent Chromium context. Profile is saved to the resolved profile dir (named or default).
  * @returns {Promise<{ context: import('playwright').BrowserContext, page: import('playwright').Page }>}
  */
 export async function launch() {
-  const context = await _chromium.launchPersistentContext(BROWSER_PROFILE_DIR, {
+  const userDataDir = resolveProfileDir();
+  fs.mkdirSync(userDataDir, { recursive: true });
+  const context = await _chromium.launchPersistentContext(userDataDir, {
     headless: BROWSER_HEADLESS,
     viewport: { width: 1280, height: 900 },
     acceptDownloads: true,

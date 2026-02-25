@@ -37,6 +37,10 @@ export default {
   attachButton: 'TO_BE_DISCOVERED',
   fileInput: 'input[type="file"]',
 
+  // Model selection (bottom of chat card: click to open model list, then choose Opus 4.6)
+  modelSelector: 'TO_BE_DISCOVERED',
+  modelOptionOpus46: 'TO_BE_DISCOVERED',
+
   // Extended thinking (model/tools menu)
   toolsMenuButton: 'TO_BE_DISCOVERED',
   thinkingToggle: 'TO_BE_DISCOVERED',

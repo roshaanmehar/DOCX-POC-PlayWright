@@ -49,8 +49,8 @@ export default {
   responseMessage: 'TO_BE_DISCOVERED',
   streamingIndicator: 'TO_BE_DISCOVERED',
 
-  // Artifact download (when Claude returns a file)
-  artifactDownload: 'TO_BE_DISCOVERED',
+  // Artifact download (when Claude returns a file) — button with aria-label="Download"
+  artifactDownload: 'button[aria-label="Download"]',
 
   // Login state — from sample: user menu only visible when logged in
   loggedInMarker: '[data-testid="user-menu-button"]',

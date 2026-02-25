@@ -2,7 +2,7 @@
 
 import { chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import selectors from './selectors.js';
+import selectors, { PLACEHOLDER } from './selectors.js';
 import { randomDelay } from './humanize.js';
 
 let _chromium = chromium;
@@ -99,12 +99,12 @@ export async function checkLogin(page) {
   await page.goto(CLAUDE_URL, { waitUntil: 'domcontentloaded' });
   await randomDelay(PAGE_STABILIZE_MS, PAGE_STABILIZE_MS + 500);
 
-  if (selectors.loggedInMarker !== 'TO_BE_DISCOVERED') {
+  if (selectors.loggedInMarker !== PLACEHOLDER) {
     const loggedIn = await page.locator(selectors.loggedInMarker).first().isVisible().catch(() => false);
     if (loggedIn) return true;
   }
 
-  if (selectors.loginPageMarker !== 'TO_BE_DISCOVERED') {
+  if (selectors.loginPageMarker !== PLACEHOLDER) {
     const onLoginPage = await page.locator(selectors.loginPageMarker).first().isVisible().catch(() => false);
     if (onLoginPage) return false;
   }
@@ -125,7 +125,7 @@ export async function waitForManualLogin(page) {
   const start = Date.now();
 
   while (Date.now() - start < LOGIN_TIMEOUT_MS) {
-    if (selectors.loggedInMarker !== 'TO_BE_DISCOVERED') {
+    if (selectors.loggedInMarker !== PLACEHOLDER) {
       const visible = await page.locator(selectors.loggedInMarker).first().isVisible().catch(() => false);
       if (visible) {
         console.log('Login detected (custom selector).');

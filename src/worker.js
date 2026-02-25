@@ -2,9 +2,15 @@
 
 import path from 'path';
 import fs from 'fs';
-import selectors from './selectors.js';
+import selectors, { PLACEHOLDER } from './selectors.js';
 import prompt from './prompt.js';
 import { humanClick, humanPaste, randomDelay, delays } from './humanize.js';
+
+/** Effective selector for chat input: use custom or fallback so we never wait on PLACEHOLDER. */
+function chatInputSelector() {
+  if (selectors.chatInput !== PLACEHOLDER) return selectors.chatInput;
+  return 'textarea[data-testid="chat-input-ssr"], textarea[aria-label*="prompt"], textarea, [role="textbox"]';
+}
 
 const CLAUDE_URL = process.env.CLAUDE_URL || 'https://claude.ai';
 const CLAUDE_PROJECT_URL = process.env.CLAUDE_PROJECT_URL || '';
@@ -37,17 +43,17 @@ export async function processFile(page, docxFilePath) {
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
     await delays.afterNav();
 
-    if (selectors.newChatButton !== 'TO_BE_DISCOVERED') {
+    if (selectors.newChatButton !== PLACEHOLDER) {
       await humanClick(page, selectors.newChatButton);
       await delays.betweenActions();
     }
 
-    await page.waitForSelector(selectors.chatInput, { state: 'visible', timeout: 15000 }).catch(() => null);
+    await page.waitForSelector(chatInputSelector(), { state: 'visible', timeout: 15000 }).catch(() => null);
 
     // Step 2: Enable extended thinking (optional; skip if selectors not set)
     if (
-      selectors.toolsMenuButton !== 'TO_BE_DISCOVERED' &&
-      selectors.thinkingToggle !== 'TO_BE_DISCOVERED'
+      selectors.toolsMenuButton !== PLACEHOLDER &&
+      selectors.thinkingToggle !== PLACEHOLDER
     ) {
       await delays.betweenActions();
       await humanClick(page, selectors.toolsMenuButton);
@@ -69,16 +75,21 @@ export async function processFile(page, docxFilePath) {
 
     // Step 4: Type / paste prompt
     await delays.betweenActions();
-    await humanPaste(page, selectors.chatInput, prompt);
+    const inputSel = chatInputSelector();
+    await humanPaste(page, inputSel, prompt);
     await delays.beforeSend();
 
-    // Step 5: Send message
-    await humanClick(page, selectors.sendButton);
+    // Step 5: Send message (click send button or press Enter)
+    if (selectors.sendButton !== PLACEHOLDER) {
+      await humanClick(page, selectors.sendButton);
+    } else {
+      await page.keyboard.press('Enter');
+    }
     await randomDelay(500, 1000);
 
     // Step 6: Wait for response to complete
     const responseStart = Date.now();
-    if (selectors.streamingIndicator !== 'TO_BE_DISCOVERED') {
+    if (selectors.streamingIndicator !== PLACEHOLDER) {
       await page.waitForSelector(selectors.streamingIndicator, { timeout: 120000 }).catch(() => null);
     }
     while (Date.now() - responseStart < RESPONSE_WAIT_TIMEOUT_MS) {
@@ -86,7 +97,7 @@ export async function processFile(page, docxFilePath) {
       if (elapsed > 0 && elapsed % 15 === 0) {
         console.log(`Waiting for Claude response... ${elapsed}s`);
       }
-      if (selectors.streamingIndicator !== 'TO_BE_DISCOVERED') {
+      if (selectors.streamingIndicator !== PLACEHOLDER) {
         const stillStreaming = await page.locator(selectors.streamingIndicator).first().isVisible().catch(() => false);
         if (!stillStreaming) {
           await randomDelay(5000, 6000);
@@ -105,10 +116,10 @@ export async function processFile(page, docxFilePath) {
     const outFileName = `${timestamp}_result.docx`;
     const outPath = path.join(RESULTS_DIR, outFileName);
 
-    if (selectors.artifactDownload === 'TO_BE_DISCOVERED') {
+    if (selectors.artifactDownload === PLACEHOLDER) {
       return {
         success: false,
-        error: 'artifactDownload selector not set. Inspect the page when Claude returns a file and set selectors.artifactDownload in src/selectors.js',
+        error: 'artifactDownload selector not set. From the artifact page (sample-source-code/claude-artifact-chat.html), find the download button/link and set selectors.artifactDownload in src/selectors.js.',
       };
     }
 

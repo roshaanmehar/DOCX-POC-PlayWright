@@ -24,16 +24,20 @@
  * - Login page marker (e.g. "Continue with Google", "Sign in")
  * - New chat button
  */
+// Placeholder value: when a selector is not set, worker uses fallbacks (see worker.js).
+const PLACEHOLDER = 'TO_BE_DISCOVERED';
+
 export default {
-  // Chat input (textarea or [contenteditable="true"])
-  chatInput: 'TO_BE_DISCOVERED',
+  // Chat input — from sample: textarea with data-testid="chat-input-ssr"
+  chatInput: '[data-testid="chat-input-ssr"]',
+  // Send: often a button with arrow icon; fallback in worker is keyboard Enter
   sendButton: 'TO_BE_DISCOVERED',
 
-  // File upload: attach button (optional if we use hidden file input)
+  // File upload: hidden input; attach button opens it (optional)
   attachButton: 'TO_BE_DISCOVERED',
   fileInput: 'input[type="file"]',
 
-  // Extended thinking
+  // Extended thinking (model/tools menu)
   toolsMenuButton: 'TO_BE_DISCOVERED',
   thinkingToggle: 'TO_BE_DISCOVERED',
 
@@ -41,13 +45,15 @@ export default {
   responseMessage: 'TO_BE_DISCOVERED',
   streamingIndicator: 'TO_BE_DISCOVERED',
 
-  // Artifact download (button or link for .docx)
+  // Artifact download (when Claude returns a file)
   artifactDownload: 'TO_BE_DISCOVERED',
 
-  // Login state
-  loggedInMarker: 'TO_BE_DISCOVERED',
+  // Login state — from sample: user menu only visible when logged in
+  loggedInMarker: '[data-testid="user-menu-button"]',
   loginPageMarker: 'TO_BE_DISCOVERED',
 
-  // New chat
-  newChatButton: 'TO_BE_DISCOVERED',
+  // New chat — from sample: sidebar link
+  newChatButton: 'a[aria-label="New chat"]',
 };
+
+export { PLACEHOLDER };

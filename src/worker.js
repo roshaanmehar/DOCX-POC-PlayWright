@@ -162,6 +162,11 @@ export async function processFile(page, docxFilePath) {
       };
     }
 
+    // Wait for artifact to render (button can appear a few seconds after response ends)
+    const downloadBtn = page.locator(selectors.artifactDownload).first();
+    await downloadBtn.waitFor({ state: 'visible', timeout: 60000 });
+    await downloadBtn.scrollIntoViewIfNeeded().catch(() => null);
+
     const [download] = await Promise.all([
       page.waitForEvent('download', { timeout: 30000 }),
       humanClick(page, selectors.artifactDownload),

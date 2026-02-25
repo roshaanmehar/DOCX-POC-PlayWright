@@ -56,15 +56,21 @@ export async function processFile(page, docxFilePath) {
       try {
         await humanClick(page, selectors.modelSelector);
         await randomDelay(500, 1200);
-        if (selectors.modelOptionOpus46 !== PLACEHOLDER) {
-          const opusOption = page.locator(selectors.modelOptionOpus46).first();
-          const visible = await opusOption.isVisible().catch(() => false);
-          const disabled = await opusOption.getAttribute('aria-disabled').then((a) => a === 'true').catch(() => false);
-          if (visible && !disabled) {
+        const opusOption =
+          selectors.modelOptionOpus46 !== PLACEHOLDER
+            ? page.locator(selectors.modelOptionOpus46).first()
+            : page.getByText('Opus 4.6').first();
+        const visible = await opusOption.isVisible().catch(() => false);
+        const disabled = await opusOption.getAttribute('aria-disabled').then((a) => a === 'true').catch(() => false);
+        if (visible && !disabled) {
+          if (selectors.modelOptionOpus46 !== PLACEHOLDER) {
             await humanClick(page, selectors.modelOptionOpus46);
           } else {
-            console.log('Opus 4.6 not available (e.g. upgrade required). Using current model.');
+            await randomDelay(200, 500);
+            await opusOption.click();
           }
+        } else if (visible && disabled) {
+          console.log('Opus 4.6 not available (e.g. upgrade required). Using current model.');
         }
         await randomDelay(300, 700);
         await page.keyboard.press('Escape');

@@ -37,8 +37,9 @@ export default {
   attachButton: 'TO_BE_DISCOVERED',
   fileInput: 'input[type="file"]',
 
-  // Model selection (bottom of chat card: click to open model list, then choose Opus 4.6)
-  modelSelector: 'TO_BE_DISCOVERED',
+  // Model selection — button that opens the model list (data-testid from Claude UI)
+  modelSelector: '[data-testid="model-selector-dropdown"]',
+  // Option for "Opus 4.6" in the dropdown; leave TO_BE_DISCOVERED to use text fallback
   modelOptionOpus46: 'TO_BE_DISCOVERED',
 
   // Extended thinking (model/tools menu)
